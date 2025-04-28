@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "263922962304",
+    "project_id": "heart-guardian-242f7",
+    "storage_bucket": "heart-guardian-242f7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:263922962304:android:217d735458cb1135edbb65",
+        "android_client_info": {
+          "package_name": "com.example.heart"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "263922962304-jkqpe8b4v4i3qu49juuk44k53e8bh9ao.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.heart",
+            "certificate_hash": "4c5d468b26df453488c8172390abc3c661ec2c00"
+          }
+        },
+        {
+          "client_id": "263922962304-8mv56j014e30j7go49tt67902ctvau8h.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBK44JJZ9GOs370N09Ycuisrj79nycKU_U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "263922962304-8mv56j014e30j7go49tt67902ctvau8h.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
