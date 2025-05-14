@@ -1,23 +1,34 @@
+import 'package:app/cache/cache_helper.dart';
+import 'package:app/controller/authintication.dart';
+import 'package:app/controller/user_controller.dart';
+import 'package:app/core/api/end_ponits.dart';
+import 'package:app/cubit/user_cubit.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:easy_localization/easy_localization.dart'; 
+import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; 
 import 'package:flutter_phoenix/flutter_phoenix.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'pages/home_page.dart';
 import 'pages/start_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-  runApp(  
+  await CacheHelper().init();
+    CacheHelper cacheHelper = CacheHelper();
+  runApp(
+    
     EasyLocalization(
       supportedLocales: const [Locale('en'), Locale('ar'), Locale('fr')],
-      path: 'asset/translations', // Path to the translation files
-      fallbackLocale: const Locale('en'), // Default language
+      path: 'asset/translations',
+      fallbackLocale: const Locale('en'),
       startLocale: const Locale('en'),
       child: Phoenix(
-        child: const MyApp()
+        child: BlocProvider(
+          create: (context) => UserCubit(AuthinticationController(),UserController(),
+          cacheHelper.getDataString(key:ApiKey.token) ?? ''
+          ),
+          child: const MyApp(),
+        ),
       ),
     ),
   );
@@ -43,12 +54,15 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      return const Start();
-    } else {
-      return const MyHomePage(title: 'Heart Disease');
-    }
+ final token = context.read<UserCubit>().token;
+
+if (token.split(".").length != 3 || JwtDecoder.isExpired(token)) {
+  context.read<UserCubit>().loggedIn = false;
+  return const MyHomePage(title: 'Heart Disease');
+} else {
+  context.read<UserCubit>().loggedIn = true;
+  return const Start();
+}
   }
 }

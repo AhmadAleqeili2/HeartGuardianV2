@@ -1,14 +1,14 @@
-import 'package:app/controller/add_history.dart';
-import 'package:app/controller/add_notification.dart';
+import 'package:app/constant.dart';
+import 'package:app/cubit/user_cubit.dart';
 import 'package:app/function/decimal_formatter.dart';
 import 'package:app/function/predict_service.dart';
 import 'package:app/widgets/dialog.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:app/widgets/options_select.dart';
 import 'package:app/widgets/custom_text_field.dart';
 import 'package:app/list.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 
 class Detection extends StatefulWidget {
@@ -74,8 +74,8 @@ class _DetectionState extends State<Detection> {
     List<double> result = await predictionService.predict(inputs, newOrder);
     
     if(result[0] < 0.65) { //threshold
-      addHistory(false);
       if (!mounted) return;
+      context.read<UserCubit>().sentHistory(goodDiag);
       dialog(
         context,
         'Potential Issues:\n  No significant risk factors detected\n'.tr(),
@@ -87,8 +87,9 @@ class _DetectionState extends State<Detection> {
         imagePath: 'asset/Image/Gdiag.png'
       );
     } else {
-      addHistory(true);
+      
       if (!mounted) return;
+      context.read<UserCubit>().sentHistory(badDiag);
       dialog(
         context,
         'Potential Issues:\n  Significant risk factors detected.\n'.tr(),
@@ -100,11 +101,8 @@ class _DetectionState extends State<Detection> {
         imagePath: 'asset/Image/Bdiag.png'.tr()
       );
     }
-
-    final User? user = FirebaseAuth.instance.currentUser;
-
-    if(user != null) {
-      await addNotification('Diagnosis made');
+    if(context.read<UserCubit>().loggedIn) {
+      await context.read<UserCubit>().sentNotification('Diagnosis made');
     }
   }
 
@@ -126,7 +124,12 @@ class _DetectionState extends State<Detection> {
             Container(
               alignment: Alignment.center,
               padding: const EdgeInsets.all(10),
-              color: const Color.fromARGB(255, 76, 200, 209),
+              decoration: BoxDecoration(
+                color: const Color.fromARGB(255, 76, 200, 209),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              
+              
               child: const Text(
                 'Enter your information and start the diagnosis.',
                 style: TextStyle(

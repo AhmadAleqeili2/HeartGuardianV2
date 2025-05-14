@@ -1,11 +1,12 @@
-import 'package:app/pages/login.dart';
+import 'package:app/cubit/user_cubit.dart';
+import 'package:app/cubit/user_state.dart';
+import 'package:app/pages/reset_passwd_req.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:app/colors.dart';
-import 'package:app/function/push.dart';
 import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/custom_text_field.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class Forgetpass extends StatefulWidget {
   const Forgetpass({super.key});
@@ -15,43 +16,32 @@ class Forgetpass extends StatefulWidget {
 }
 
 class _ForgetpassState extends State<Forgetpass> {
-  final TextEditingController _emailController = TextEditingController();
-  bool _isLoading = false;
-
-  // Function to send the password reset link
-  Future<void> _sendResetCode() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text);
-     
-      if (context.mounted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('A reset code has been sent to your email.'.tr())),
-        );
-        navigateTo(context, const Login()); 
-      }
-    } catch (e) {
-      
-      if (context.mounted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'.tr())),
-        );
-      }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocConsumer<UserCubit,UserState>( listener:(context , state){
+      if (state is ForgotPasswordSuccess){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.message.message),
+          ),
+        );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const ResetPasswdReq(),
+          ),
+        );
+      }
+      if(state is ForgotPasswordFailure){
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.message.message),
+          ),
+        );
+      }
+    },
+    builder: (context , state){
+      return Scaffold(
       backgroundColor: secondaryColor,
       appBar: AppBar(
         title: Text('Reset your password'.tr()),
@@ -63,14 +53,24 @@ class _ForgetpassState extends State<Forgetpass> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            CustomTextField(labelText: "Enter Your Email".tr(), controller: _emailController),
+            CustomTextField(labelText: "Enter Your Email".tr(), controller: context.read<UserCubit>().resetEmail),
             const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator() // Show loading indicator while sending the code
-                : CustomButton(label: "Send Code".tr(), onPressed: _sendResetCode)
+            BlocBuilder<UserCubit, UserState>(
+              builder: (context, state) {
+                if (state is ForgotPasswordLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return CustomButton(label: "Send Code".tr(), onPressed: (){
+              context.read<UserCubit>().forgotPassword();
+            });
+              },
+            ),
+            
           ],
         ),
       ),
+    );
+    },
     );
   }
 }

@@ -1,8 +1,9 @@
+import 'package:app/cubit/user_cubit.dart';
+import 'package:app/cubit/user_state.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth
-import 'package:cloud_firestore/cloud_firestore.dart'; // Firestore
 import 'package:app/widgets/custom_button.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class FeedbackPage extends StatefulWidget {
   const FeedbackPage({super.key});
@@ -12,76 +13,44 @@ class FeedbackPage extends StatefulWidget {
 }
 
 class _FeedbackPageState extends State<FeedbackPage> {
-  final TextEditingController _feedbackController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
   bool _hasSubmittedFeedback = false; 
-
-  // Function to check if feedback has already been submitted
-  Future<void> _checkFeedbackStatus() async {
-    final User? user = _auth.currentUser;
-    if (user == null) return;
-
-    final userDoc = await _firestore.collection('users').doc(user.uid).get();
-    
-    if (userDoc.exists && userDoc.data()?['feedback'] != null) {
-      setState(() {
-        _hasSubmittedFeedback = true; // If feedback exists
-      });
-    }
-  }
-
-  // Function to submit feedback to Firestore in the 'users' collection
-  Future<void> _submitFeedback() async {
-    final User? user = _auth.currentUser; // Get the current user
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text("Please log in to submit feedback".tr())),
-      );
-      return;
-    }
-
-    if (_feedbackController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text("Feedback cannot be empty".tr())),
-      );
-      return;
-    }
-
-    try {
-      await _firestore.collection('users').doc(user.uid).set({
-        'feedback': _feedbackController.text.trim(), // Add the feedback
-        'last_feedback_time': Timestamp.now(), // Time of submitting feedback
-      });
-
-      // Show success message
-     if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text("Feedback submitted successfully".tr())),
-      );
-
-      // Update state to show a message instead of the text box
-      setState(() {
-        _hasSubmittedFeedback = true;
-      });
-      _feedbackController.clear();
-    } catch (e) {
-      // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error submitting feedback: $e").tr()),
-      );
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _checkFeedbackStatus(); // Check feedback status on page load
+    context.read<UserCubit>().feedBackCheck(); // Check feedback status on page load
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocConsumer<UserCubit,UserState>( listener: (context, state) {
+      if (state is FeedBackCheckSuccess && !state.isCheck) {
+        _hasSubmittedFeedback = !state.isCheck;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('You Already Submited Feedback'),
+          ),
+        );
+      } 
+      if (state is SentFeedBackSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Feedback Submitted Successfully'),
+          ),
+        );
+        _hasSubmittedFeedback = true; // Update the state to show feedback has been submitted
+      } else if (state is SentFeedBackFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to Submit Feedback'),
+          ),
+        );
+      }
+
+    }, builder: (context, state) {
+      if (state is FeedBackCheckLoading) {
+        return Center(child: CircularProgressIndicator());
+      }
+      return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Feedback',
@@ -103,7 +72,7 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ).tr(),
             ] else ...[
               TextField(
-                controller: _feedbackController,
+                controller: context.read<UserCubit>().feedbackController, // Use the feedback controller
                 decoration:  InputDecoration(
                   labelText: 'Your Feedback'.tr(),
                   labelStyle: TextStyle(color: Color.fromARGB(100, 0, 0, 0)),
@@ -126,15 +95,19 @@ class _FeedbackPageState extends State<FeedbackPage> {
               ),
 
               const SizedBox(height: 20), 
-
-              CustomButton(
+BlocBuilder<UserCubit, UserState>(
+          builder: (context, state) {
+            if(state is SentFeedBackLoading) {
+              return Center(child: CircularProgressIndicator());}
+             return CustomButton(
                 label: "Submit".tr(),
-                onPressed: _submitFeedback, // Call the submit function on press
-              ),
+                onPressed:(){ context.read<UserCubit>().sentFeedBack();}, // Call the submit function on press
+              );})
             ],
           ],
         ),
       ),
     );
+    });
   }
 }

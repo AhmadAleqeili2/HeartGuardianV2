@@ -1,8 +1,10 @@
+import 'package:app/cubit/user_cubit.dart';
+import 'package:app/cubit/user_state.dart';
 import 'package:app/widgets/custom_button.dart';
 import 'package:app/widgets/custom_text_field.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -12,49 +14,28 @@ class ChangePasswordPage extends StatefulWidget {
 }
 
 class ChangePasswordPageState extends State<ChangePasswordPage> {
-  final TextEditingController _newPasswordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  String? _errorMessage;
-
-  // Function to change the password
-  Future<void> _changePassword() async {
-    setState(() {
-      _errorMessage = null; 
-    });
-
-    // Validate if passwords match
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _errorMessage = 'Passwords do not match!'.tr();
-      });
-      return;
-    }
-
-    try {
-      User? user = _auth.currentUser;
-      if (user != null) {
-        // Change password for the current user
-        await user.updatePassword(_newPasswordController.text);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Password changed successfully!").tr()),
-        );
-        // Clear inputs after successful change
-        _newPasswordController.clear();
-        _confirmPasswordController.clear();
-      }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error changing password: $e';
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BlocConsumer<UserCubit,UserState>( listener: (context, state){
+      if (state is UpdatePasswordSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.message.message),
+          ),
+        );
+        Navigator.pop(context);
+      } else if (state is UpdatePasswordFailure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.message.message),
+          ),
+        );
+      }
+    }, 
+    builder: (context, state) {
+      
+      return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Change Password',
@@ -68,33 +49,37 @@ class ChangePasswordPageState extends State<ChangePasswordPage> {
           children: [
             const SizedBox(height: 40),
             CustomTextField(
-              controller: _newPasswordController,
+              controller: context.read<UserCubit>().updatPasswordCont,
               labelText: "New Password".tr(),
               labelFontSize: 18,
               obscureText: true,
             ),
             const SizedBox(height: 20), 
             CustomTextField(
-              controller: _confirmPasswordController,
+              controller: context.read<UserCubit>().confirmUpdatPassowrdCont,
               labelText: "Confirm New Password".tr(),
               labelFontSize: 18,
               obscureText: true,
             ),
             const SizedBox(height: 40),
-            if (_errorMessage != null)
-              Text(
-                _errorMessage!,
-                style: TextStyle(color: Colors.red, fontSize: 16),
-              ),
+
             const SizedBox(height: 20),
+            BlocBuilder<UserCubit,UserState>(builder: (context, state) {
+              if (state is UpdatePasswordLoading) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      }
+              return
             CustomButton(
               label: "Set".tr(),
-              onPressed: _changePassword,
-            ),
+              onPressed:(){ context.read<UserCubit>().updatePassword();},
+            );}),
           ],
         ),
       ),
       backgroundColor: const Color.fromARGB(255, 255, 255, 255), 
-    );
+    ); 
+    } );}
   }
-}
+

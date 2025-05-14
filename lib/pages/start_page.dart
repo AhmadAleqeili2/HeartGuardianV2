@@ -1,10 +1,11 @@
+import 'package:app/cubit/user_cubit.dart';
 import 'package:app/function/push.dart';
 import 'package:app/pages/contact_us.dart';
 import 'package:app/pages/detection.dart';
 import 'package:app/widgets/text_button.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widgets/drawer.dart'; 
 import 'feedback_page.dart';
 
@@ -18,7 +19,7 @@ class Start extends StatefulWidget {
 class _StartState extends State<Start> {
   @override
   Widget build(BuildContext context) {
-    User? user = FirebaseAuth.instance.currentUser;
+    final isLoggedIn = context.read<UserCubit>().loggedIn;
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255), 
       appBar: AppBar(
@@ -28,7 +29,7 @@ class _StartState extends State<Start> {
           style: const TextStyle(color: Color.fromARGB(255, 255, 255, 255)), 
         ),
       ),
-      drawer: const CustomDrawer(), 
+      drawer:  CustomDrawer(), 
       body: SingleChildScrollView( 
         child: Column(
           children: [
@@ -71,7 +72,7 @@ class _StartState extends State<Start> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween, 
               children: [
-                if (user != null) ...[
+                if (isLoggedIn) ...[
                 CustomTextButton(
                   label: "Feedback".tr(), 
                   onPressed: () { navigateTo(context, const FeedbackPage()); },
